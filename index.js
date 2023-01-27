@@ -48,30 +48,38 @@ io.on("connection", (socket) => {
       });
     } else if (data.type == "group") {
       console.log(online_group.length);
-      let index = online_group.findIndex((item) => item.username == data.username);
-      if(index < 0){
+      let index = online_group.findIndex(
+        (item) => item.username == data.username
+      );
+      if (index < 0) {
         online_group.push({
           ...data,
           socket_id: socket.id,
-        });  
-      }else{
-       
+        });
+      } else {
+        io.emit("group_exist", "true");
       }
     }
 
+    console.log(online_group, "eceruvvberherbvbvrebvberv");
     io.emit("UsersLogged", online_user, online_group);
   });
 
   socket.on("chat", (data, my_detail) => {
     // console.log(data,my_detail);
     if (data.type == "group") {
-      console.log(data, "chatdata");
-      socket.join(data.socket_id);
-      socket.broadcast.to(data.socket_id).emit("new user joined", {
-        user: data.user_id,
-        message: "has joined this room.",
-      });
-      io.emit("room_id", data.socket_id);
+      socket.join(data.username);
+      users = io.sockets.adapter.rooms.get(data.username).size
+      
+      if (users <= 2) {
+        console.log(data, "chatdata");
+        console.log(users, 'userzsssssssssssssssssssssssssssssssssssssssssssssssss');
+        socket.broadcast.to(data.username).emit("new user joined", { user: data.user_id, message: "has joined this room.", });
+        io.emit("room_id", data.username);
+      } else {
+        socket.leave(data.username)
+        io.emit('maxLimit' , 'Limit reached')
+      }
     } else {
       console.log(data);
       let data1 = [data.username, my_detail.username];
@@ -89,13 +97,12 @@ io.on("connection", (socket) => {
   socket.on("leave", (message) => {
     console.log(message, "leave");
 
-    console.log(message.user + " left the room");
+    console.log(message.user + " left the room" + message.room);
 
     socket.leave(message.room);
+    
 
-    socket.broadcast
-      .to(message.room)
-      .emit("User left", { user: message.user, message: "has left the group" });
+    socket.broadcast.to(message.room).emit("User_left", { user: message.user, message: "has left the group" });
 
     // io.emit('message', `${socket.id.substr(0, 2)} said ${message}`);
   });
